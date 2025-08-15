@@ -1,7 +1,24 @@
+import { db } from '../db';
+import { usersTable } from '../db/schema';
+import { eq } from 'drizzle-orm';
+
 export const deleteUser = async (id: number): Promise<boolean> => {
-    // This is a placeholder declaration! Real code should be implemented here.
-    // The goal of this handler is soft or hard deleting a user from the database.
-    // Should handle cascade deletion of related data (news, comments) or set foreign keys to null.
-    // Returns true if deletion was successful, false if user not found.
-    return Promise.resolve(true);
+  try {
+    // Perform soft delete by setting is_active to false
+    // This preserves data integrity and maintains foreign key relationships
+    const result = await db.update(usersTable)
+      .set({ 
+        is_active: false,
+        updated_at: new Date()
+      })
+      .where(eq(usersTable.id, id))
+      .returning()
+      .execute();
+
+    // Return true if user was found and updated, false if user not found
+    return result.length > 0;
+  } catch (error) {
+    console.error('User deletion failed:', error);
+    throw error;
+  }
 };

@@ -1,19 +1,31 @@
+import { db } from '../db';
+import { usersTable } from '../db/schema';
 import { type CreateUserInput, type User } from '../schema';
+import { createHash, randomBytes } from 'crypto';
 
 export const createUser = async (input: CreateUserInput): Promise<User> => {
-    // This is a placeholder declaration! Real code should be implemented here.
-    // The goal of this handler is creating a new user with hashed password and persisting it in the database.
-    // Should handle password hashing, username/email uniqueness validation, and return the created user without password.
-    return Promise.resolve({
-        id: 1,
+  try {
+    // Hash the password with salt using Node.js crypto
+    const salt = randomBytes(16).toString('hex');
+    const password_hash = createHash('sha256').update(input.password + salt).digest('hex') + ':' + salt;
+
+    // Insert user record
+    const result = await db.insert(usersTable)
+      .values({
         username: input.username,
         email: input.email,
-        password_hash: 'hashed_password_placeholder',
+        password_hash,
         full_name: input.full_name || null,
         avatar: input.avatar || null,
-        role: input.role,
-        is_active: true,
-        created_at: new Date(),
-        updated_at: new Date()
-    } as User);
+        role: input.role
+      })
+      .returning()
+      .execute();
+
+    const user = result[0];
+    return user;
+  } catch (error) {
+    console.error('User creation failed:', error);
+    throw error;
+  }
 };
